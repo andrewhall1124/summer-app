@@ -1,36 +1,96 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Todo App with Customizable Swim Lanes
 
-## Getting Started
+A modern todo application built with Next.js featuring customizable swim lanes, drag-and-drop functionality, folders, and advanced task management with tags and due dates.
 
-First, run the development server:
+## Features
+
+- **Customizable Swim Lanes**: Create, rename, reorder, and delete swim lanes
+- **Drag & Drop**: Reorder swim lanes with intuitive drag-and-drop
+- **Folder Organization**: Organize tasks within folders inside swim lanes
+- **Advanced Task Management**:
+  - Create, edit, and delete tasks
+  - Add descriptions and due dates
+  - Custom tags with colors
+  - Mark tasks as complete/incomplete
+- **Modern UI**: Built with Radix UI for a clean, accessible interface
+
+## Tech Stack
+
+- **Frontend**: Next.js 15, React 19
+- **UI Components**: Radix UI Themes
+- **Drag & Drop**: DnD Kit
+- **Database**: PostgreSQL with Prisma ORM
+- **Icons**: Lucide React
+- **Date Handling**: date-fns
+
+## Setup Instructions
+
+### Prerequisites
+
+- Node.js 18+
+- PostgreSQL database
+
+### 1. Install Dependencies
+
+```bash
+npm install
+```
+
+### 2. Database Setup
+
+1. Create a PostgreSQL database
+2. Copy the environment variables:
+   ```bash
+   cp .env.example .env
+   ```
+3. Update `.env` with your database connection string:
+   ```
+   DATABASE_PUBLIC_URL="postgresql://username:password@localhost:5432/summer_app_db"
+   ```
+
+### 3. Initialize Database
+
+Generate and run the database migration:
+
+```bash
+# Generate Prisma client
+npx prisma generate
+
+# Run the migration to create tables
+npx prisma db push
+
+# (Optional) Open Prisma Studio to view your database
+npx prisma studio
+```
+
+### 4. Start Development Server
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000) to view the application.
 
-You can start editing the page by modifying `app/page.js`. The page auto-updates as you edit the file.
+## Usage
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+1. **Create Swim Lanes**: Click "Add Swim Lane" to create your first lane
+2. **Customize Names**: Click the edit icon to rename swim lanes
+3. **Reorder**: Drag swim lanes by the grip handle to reorder them
+4. **Add Folders**: Click "Add Folder" within a swim lane to organize tasks
+5. **Manage Tasks**:
+   - Click "Add Task" within a folder
+   - Click on any task to edit details, add tags, or set due dates
+   - Check tasks off as you complete them
 
-## Learn More
+## Database Schema
 
-To learn more about Next.js, take a look at the following resources:
+The app uses a hierarchical structure:
+- **Swim Lanes** contain multiple **Folders**
+- **Folders** contain multiple **Tasks**
+- **Tasks** can have multiple **Tags** (many-to-many relationship)
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Development
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- **Build**: `npm run build`
+- **Database Reset**: `npx prisma db push --force-reset` (⚠️ This will delete all data)
+- **View Database**: `npx prisma studio`

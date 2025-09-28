@@ -1,9 +1,5 @@
-import Image from "next/image";
+import Board from '@/components/Board';
 
 export default function Page() {
-  return (
-    <div>
-      Hello world!
-    </div>
-  );
+  return <Board />;
 }

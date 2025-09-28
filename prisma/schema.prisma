@@ -11,5 +11,72 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
+  url      = env("DATABASE_PUBLIC_URL")
+}
+
+model SwimLane {
+  id        String   @id @default(cuid())
+  name      String
+  order     Int      @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  folders   Folder[]
+
+  @@map("swim_lanes")
+}
+
+model Folder {
+  id          String   @id @default(cuid())
+  name        String
+  order       Int
+  swimLaneId  String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  swimLane    SwimLane @relation(fields: [swimLaneId], references: [id], onDelete: Cascade)
+  tasks       Task[]
+
+  @@unique([swimLaneId, order])
+  @@map("folders")
+}
+
+model Task {
+  id          String     @id @default(cuid())
+  title       String
+  description String?
+  dueDate     DateTime?
+  completed   Boolean    @default(false)
+  order       Int
+  folderId    String
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  folder      Folder     @relation(fields: [folderId], references: [id], onDelete: Cascade)
+  tags        TaskTag[]
+
+  @@unique([folderId, order])
+  @@map("tasks")
+}
+
+model Tag {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  color     String?
+  createdAt DateTime @default(now())
+
+  tasks     TaskTag[]
+
+  @@map("tags")
+}
+
+model TaskTag {
+  taskId String
+  tagId  String
+
+  task   Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  tag    Tag  @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([taskId, tagId])
+  @@map("task_tags")
 }
