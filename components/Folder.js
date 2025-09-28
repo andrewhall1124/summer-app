@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { Card, Text, Flex, Badge, Button, TextField } from '@radix-ui/themes';
 import { FolderOpen, ChevronDown, ChevronRight, Plus, Edit2, Trash2 } from 'lucide-react';
 import Task from './Task';
 
@@ -95,68 +94,63 @@ export default function Folder({ folder, onUpdateFolder, onDeleteFolder, onAddTa
   };
 
   return (
-    <Card variant="surface" className="w-full">
-      <Flex direction="column" gap="2" p="3">
-        <Flex align="center" justify="between">
-          <Flex
-            align="center"
-            gap="2"
-            className="cursor-pointer flex-1"
+    <div className="folder-card">
+      <div className="folder-content">
+        <div className="folder-header">
+          <div
+            className="folder-title-section"
             onClick={() => setIsExpanded(!isExpanded)}
           >
-            <Button variant="ghost" size="1">
+            <button className="icon-btn">
               {isExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
-            </Button>
+            </button>
             <FolderOpen size={16} />
             {isEditing ? (
-              <TextField.Root
+              <input
+                className="form-input folder-name-input"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 onBlur={handleSaveName}
                 onKeyDown={handleKeyPress}
                 autoFocus
-                size="1"
               />
             ) : (
-              <Text size="3" weight="medium">
+              <span className="folder-name">
                 {folder.name}
-              </Text>
+              </span>
             )}
-          </Flex>
-          <Flex align="center" gap="1">
-            <Badge color={completedTasks === totalTasks && totalTasks > 0 ? 'green' : 'gray'}>
+          </div>
+          <div className="folder-actions">
+            <span className={`task-count ${completedTasks === totalTasks && totalTasks > 0 ? 'completed' : ''}`}>
               {completedTasks}/{totalTasks}
-            </Badge>
-            <Button
-              variant="ghost"
-              size="1"
+            </span>
+            <button
+              className="icon-btn"
               onClick={(e) => {
                 e.stopPropagation();
                 setIsEditing(true);
               }}
             >
               <Edit2 size={12} />
-            </Button>
-            <Button
-              variant="ghost"
-              size="1"
-              color="red"
+            </button>
+            <button
+              className="icon-btn delete-btn"
               onClick={(e) => {
                 e.stopPropagation();
                 handleDeleteFolder();
               }}
             >
               <Trash2 size={12} />
-            </Button>
-          </Flex>
-        </Flex>
+            </button>
+          </div>
+        </div>
 
         {isExpanded && (
-          <Flex direction="column" gap="1" ml="6">
+          <div className="folder-tasks">
             {folder.tasks?.length === 0 ? (
-              <Text size="2" color="gray">
+              <div className="empty-tasks-text">
                 No tasks yet
-              </Text>
+              </div>
             ) : (
               folder.tasks?.map((task) => (
                 <Task
@@ -167,18 +161,16 @@ export default function Folder({ folder, onUpdateFolder, onDeleteFolder, onAddTa
                 />
               ))
             )}
-            <Button
-              variant="soft"
-              size="1"
+            <button
+              className="add-btn small"
               onClick={handleAddTask}
-              mt="2"
             >
               <Plus size={12} />
               Add Task
-            </Button>
-          </Flex>
+            </button>
+          </div>
         )}
-      </Flex>
-    </Card>
+      </div>
+    </div>
   );
 }

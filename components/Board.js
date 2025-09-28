@@ -15,7 +15,6 @@ import {
   sortableKeyboardCoordinates,
   horizontalListSortingStrategy,
 } from '@dnd-kit/sortable';
-import { Flex, Button, Container, Text } from '@radix-ui/themes';
 import { Plus } from 'lucide-react';
 import SwimLane from './SwimLane';
 
@@ -152,22 +151,22 @@ export default function Board() {
 
   if (loading) {
     return (
-      <Container p="4">
-        <Text>Loading...</Text>
-      </Container>
+      <div className="board-container">
+        <div className="loading-text">Loading...</div>
+      </div>
     );
   }
 
   return (
-    <Container p="4">
-      <Flex direction="column" gap="4">
-        <Flex align="center" justify="between">
-          <Text size="6" weight="bold">Todo Board</Text>
-          <Button onClick={addSwimLane}>
+    <div className="board-container">
+      <div className="board-content">
+        <div className="board-header">
+          <h1 className="board-title">Todo Board</h1>
+          <button className="primary-btn" onClick={addSwimLane}>
             <Plus size={16} />
             Add Swim Lane
-          </Button>
-        </Flex>
+          </button>
+        </div>
 
         <DndContext
           sensors={sensors}
@@ -175,7 +174,7 @@ export default function Board() {
           onDragEnd={handleDragEnd}
         >
           <SortableContext items={swimLanes} strategy={horizontalListSortingStrategy}>
-            <Flex gap="4" style={{ overflowX: 'auto', paddingBottom: '20px' }}>
+            <div className="swim-lane-container">
               {swimLanes.map((swimLane) => (
                 <SwimLane
                   key={swimLane.id}
@@ -186,20 +185,20 @@ export default function Board() {
                   onRefresh={fetchSwimLanes}
                 />
               ))}
-            </Flex>
+            </div>
           </SortableContext>
         </DndContext>
 
         {swimLanes.length === 0 && (
-          <Flex direction="column" align="center" gap="3" py="8">
-            <Text color="gray" size="4">No swim lanes yet</Text>
-            <Button onClick={addSwimLane}>
+          <div className="empty-state">
+            <div className="empty-text">No swim lanes yet</div>
+            <button className="primary-btn" onClick={addSwimLane}>
               <Plus size={16} />
               Create your first swim lane
-            </Button>
-          </Flex>
+            </button>
+          </div>
         )}
-      </Flex>
-    </Container>
+      </div>
+    </div>
   );
 }

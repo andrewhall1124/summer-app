@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Dialog, Card, Text, Flex, Badge, Button, TextField, TextArea, Select } from '@radix-ui/themes';
 import { Calendar, Edit2, Trash2, Tag, Plus } from 'lucide-react';
 import { format } from 'date-fns';
 
@@ -105,154 +104,145 @@ export default function Task({ task, onUpdate, onDelete }) {
 
   return (
     <>
-      <Flex align="center" justify="between" p="2" className="group hover:bg-gray-50 rounded">
-        <Flex align="center" gap="2" className="flex-1">
+      <div className="task-item">
+        <div className="task-main">
           <input
             type="checkbox"
             checked={task.completed}
             onChange={(e) => onUpdate({ completed: e.target.checked })}
+            className="task-checkbox"
           />
-          <Text
-            size="2"
-            className="flex-1 cursor-pointer"
-            style={{
-              textDecoration: task.completed ? 'line-through' : 'none',
-              color: task.completed ? 'var(--gray-10)' : 'inherit'
-            }}
+          <span
+            className={`task-title ${task.completed ? 'completed' : ''}`}
             onClick={() => setIsEditDialogOpen(true)}
           >
             {task.title}
-          </Text>
-        </Flex>
-        <Flex align="center" gap="1">
+          </span>
+        </div>
+        <div className="task-meta">
           {task.dueDate && (
-            <Badge size="1" color="blue">
+            <span className="task-badge due-date">
               <Calendar size={10} />
               {format(new Date(task.dueDate), 'MMM dd')}
-            </Badge>
+            </span>
           )}
           {task.tags?.map((taskTag) => (
-            <Badge
+            <span
               key={taskTag.tagId}
-              size="1"
+              className="task-badge tag-badge"
               style={{ backgroundColor: taskTag.tag.color }}
             >
               {taskTag.tag.name}
-            </Badge>
+            </span>
           ))}
-          <Button
-            variant="ghost"
-            size="1"
-            className="opacity-0 group-hover:opacity-100"
+          <button
+            className="icon-btn task-action"
             onClick={() => setIsEditDialogOpen(true)}
           >
             <Edit2 size={12} />
-          </Button>
-          <Button
-            variant="ghost"
-            size="1"
-            color="red"
-            className="opacity-0 group-hover:opacity-100"
+          </button>
+          <button
+            className="icon-btn task-action delete-btn"
             onClick={handleDelete}
           >
             <Trash2 size={12} />
-          </Button>
-        </Flex>
-      </Flex>
+          </button>
+        </div>
+      </div>
 
-      <Dialog.Root open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <Dialog.Content style={{ maxWidth: 450 }}>
-          <Dialog.Title>Edit Task</Dialog.Title>
-          <Dialog.Description size="2" mb="4">
-            Modify task details, add tags, and set due dates.
-          </Dialog.Description>
-
-          <Flex direction="column" gap="3">
-            <label>
-              <Text as="div" size="2" mb="1" weight="bold">
-                Title
-              </Text>
-              <TextField.Root
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                placeholder="Task title"
-              />
-            </label>
-
-            <label>
-              <Text as="div" size="2" mb="1" weight="bold">
-                Description
-              </Text>
-              <TextArea
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                placeholder="Task description (optional)"
-              />
-            </label>
-
-            <label>
-              <Text as="div" size="2" mb="1" weight="bold">
-                Due Date
-              </Text>
-              <TextField.Root
-                type="date"
-                value={dueDate}
-                onChange={(e) => setDueDate(e.target.value)}
-              />
-            </label>
-
-            <div>
-              <Text as="div" size="2" mb="2" weight="bold">
-                Tags
-              </Text>
-              <Flex direction="column" gap="2">
-                <Flex gap="1" wrap="wrap">
-                  {availableTags.map((tag) => (
-                    <Badge
-                      key={tag.id}
-                      size="2"
-                      className="cursor-pointer"
-                      style={{
-                        backgroundColor: selectedTagIds.includes(tag.id) ? tag.color : 'var(--gray-4)',
-                        color: selectedTagIds.includes(tag.id) ? 'white' : 'var(--gray-11)'
-                      }}
-                      onClick={() => {
-                        if (selectedTagIds.includes(tag.id)) {
-                          setSelectedTagIds(selectedTagIds.filter(id => id !== tag.id));
-                        } else {
-                          setSelectedTagIds([...selectedTagIds, tag.id]);
-                        }
-                      }}
-                    >
-                      {tag.name}
-                    </Badge>
-                  ))}
-                </Flex>
-                <Button
-                  variant="soft"
-                  size="1"
-                  onClick={() => {
-                    const tagName = prompt('Enter tag name:');
-                    if (tagName) createNewTag(tagName);
-                  }}
-                >
-                  <Plus size={12} />
-                  New Tag
-                </Button>
-              </Flex>
+      {isEditDialogOpen && (
+        <div className="modal-overlay" onClick={() => setIsEditDialogOpen(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3 className="modal-title">Edit Task</h3>
+              <p className="modal-description">
+                Modify task details, add tags, and set due dates.
+              </p>
             </div>
-          </Flex>
 
-          <Flex gap="3" mt="4" justify="end">
-            <Dialog.Close>
-              <Button variant="soft" color="gray">
+            <div className="modal-body">
+              <label className="form-label">
+                <span className="label-text">Title</span>
+                <input
+                  className="form-input"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  placeholder="Task title"
+                />
+              </label>
+
+              <label className="form-label">
+                <span className="label-text">Description</span>
+                <textarea
+                  className="form-textarea"
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  placeholder="Task description (optional)"
+                />
+              </label>
+
+              <label className="form-label">
+                <span className="label-text">Due Date</span>
+                <input
+                  className="form-input"
+                  type="date"
+                  value={dueDate}
+                  onChange={(e) => setDueDate(e.target.value)}
+                />
+              </label>
+
+              <div className="form-section">
+                <span className="label-text">Tags</span>
+                <div className="tags-section">
+                  <div className="available-tags">
+                    {availableTags.map((tag) => (
+                      <span
+                        key={tag.id}
+                        className={`tag-option ${selectedTagIds.includes(tag.id) ? 'selected' : ''}`}
+                        style={{
+                          backgroundColor: selectedTagIds.includes(tag.id) ? tag.color : '#f3f4f6',
+                          color: selectedTagIds.includes(tag.id) ? 'white' : '#374151'
+                        }}
+                        onClick={() => {
+                          if (selectedTagIds.includes(tag.id)) {
+                            setSelectedTagIds(selectedTagIds.filter(id => id !== tag.id));
+                          } else {
+                            setSelectedTagIds([...selectedTagIds, tag.id]);
+                          }
+                        }}
+                      >
+                        {tag.name}
+                      </span>
+                    ))}
+                  </div>
+                  <button
+                    className="secondary-btn small"
+                    onClick={() => {
+                      const tagName = prompt('Enter tag name:');
+                      if (tagName) createNewTag(tagName);
+                    }}
+                  >
+                    <Plus size={12} />
+                    New Tag
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div className="modal-footer">
+              <button
+                className="secondary-btn"
+                onClick={() => setIsEditDialogOpen(false)}
+              >
                 Cancel
-              </Button>
-            </Dialog.Close>
-            <Button onClick={handleSave}>Save</Button>
-          </Flex>
-        </Dialog.Content>
-      </Dialog.Root>
+              </button>
+              <button className="primary-btn" onClick={handleSave}>
+                Save
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }

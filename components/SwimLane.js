@@ -3,7 +3,6 @@
 import { useState } from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { Card, Text, Button, Flex, TextField } from '@radix-ui/themes';
 import { GripVertical, Plus, Edit2, Trash2 } from 'lucide-react';
 import Folder from './Folder';
 
@@ -43,58 +42,53 @@ export default function SwimLane({ swimLane, onUpdateName, onDelete, onAddFolder
   };
 
   return (
-    <Card
+    <div
       ref={setNodeRef}
       style={style}
-      className="min-w-80 max-w-80 h-fit"
+      className="swim-lane"
       {...attributes}
     >
-      <Flex direction="column" gap="3" p="4">
-        <Flex align="center" justify="between">
-          <Flex align="center" gap="2">
-            <Button
-              variant="ghost"
-              size="1"
+      <div className="swim-lane-content">
+        <div className="swim-lane-header">
+          <div className="swim-lane-title-section">
+            <button
+              className="icon-btn drag-handle"
               {...listeners}
-              style={{ cursor: 'grab' }}
             >
               <GripVertical size={16} />
-            </Button>
+            </button>
             {isEditing ? (
-              <TextField.Root
+              <input
+                className="form-input swim-lane-title-input"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 onBlur={handleSaveName}
                 onKeyDown={handleKeyPress}
                 autoFocus
-                size="2"
               />
             ) : (
-              <Text size="4" weight="bold">
+              <h2 className="swim-lane-title">
                 {swimLane.name}
-              </Text>
+              </h2>
             )}
-          </Flex>
-          <Flex gap="1">
-            <Button
-              variant="ghost"
-              size="1"
+          </div>
+          <div className="swim-lane-actions">
+            <button
+              className="icon-btn"
               onClick={() => setIsEditing(true)}
             >
               <Edit2 size={14} />
-            </Button>
-            <Button
-              variant="ghost"
-              size="1"
-              color="red"
+            </button>
+            <button
+              className="icon-btn delete-btn"
               onClick={() => onDelete(swimLane.id)}
             >
               <Trash2 size={14} />
-            </Button>
-          </Flex>
-        </Flex>
+            </button>
+          </div>
+        </div>
 
-        <Flex direction="column" gap="2">
+        <div className="folder-list">
           {swimLane.folders?.map((folder) => (
             <Folder
               key={folder.id}
@@ -105,17 +99,16 @@ export default function SwimLane({ swimLane, onUpdateName, onDelete, onAddFolder
               onRefresh={onRefresh}
             />
           ))}
-        </Flex>
+        </div>
 
-        <Button
-          variant="soft"
-          size="2"
+        <button
+          className="add-btn"
           onClick={() => onAddFolder(swimLane.id)}
         >
           <Plus size={16} />
           Add Folder
-        </Button>
-      </Flex>
-    </Card>
+        </button>
+      </div>
+    </div>
   );
 }
