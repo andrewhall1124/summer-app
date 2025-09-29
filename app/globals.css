@@ -346,6 +346,7 @@ a {
   font-weight: 500;
   cursor: pointer;
   transition: background-color 0.15s ease-in-out;
+  height: 28px;
 }
 
 .primary-btn:hover {
@@ -705,3 +706,12 @@ a {
     padding-right: 1rem;
   }
 }
+
+/* ===== AUTHENTICATION COMPONENTS ===== */
+
+.header-actions {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+}
+

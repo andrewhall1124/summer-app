@@ -16,6 +16,7 @@ import {
   horizontalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { Plus } from 'lucide-react';
+import { SignedIn, SignedOut, SignInButton, UserButton } from '@clerk/nextjs';
 import SwimLane from './SwimLane';
 
 export default function Board() {
@@ -162,10 +163,18 @@ export default function Board() {
       <div className="board-content">
         <div className="board-header">
           <h1 className="board-title">Todo Board</h1>
-          <button className="primary-btn" onClick={addSwimLane}>
-            <Plus size={16} />
-            Add Swim Lane
-          </button>
+          <div className="header-actions">
+            <button className="primary-btn" onClick={addSwimLane}>
+              <Plus size={16} />
+              Add Swim Lane
+            </button>
+            <SignedOut>
+              <SignInButton />
+            </SignedOut>
+            <SignedIn>
+              <UserButton />
+            </SignedIn>
+          </div>
         </div>
 
         <DndContext
