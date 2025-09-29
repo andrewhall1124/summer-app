@@ -32,6 +32,17 @@ export async function POST(request) {
       );
     }
 
+    // First, set all orders to negative values to avoid constraint conflicts
+    await prisma.$transaction(
+      swimLanes.map(({ id }, index) =>
+        prisma.swimLane.update({
+          where: { id },
+          data: { order: -(index + 1) }
+        })
+      )
+    );
+
+    // Then update to the correct positive order values
     await prisma.$transaction(
       swimLanes.map(({ id, order }) =>
         prisma.swimLane.update({

@@ -173,7 +173,7 @@ export default function Board() {
           collisionDetection={closestCenter}
           onDragEnd={handleDragEnd}
         >
-          <SortableContext items={swimLanes} strategy={horizontalListSortingStrategy}>
+          <SortableContext items={swimLanes.map(lane => lane.id)} strategy={horizontalListSortingStrategy}>
             <div className="swim-lane-container">
               {swimLanes.map((swimLane) => (
                 <SwimLane
