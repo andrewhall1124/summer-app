@@ -132,13 +132,16 @@ export default function Board() {
 
   const addFolder = async (swimLaneId) => {
     try {
+      const swimLane = swimLanes.find(lane => lane.id === swimLaneId);
+      const folderCount = swimLane?.folders?.length || 0;
+
       const response = await fetch('/api/folders', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           name: 'New Folder',
           swimLaneId,
-          order: 0
+          order: folderCount
         }),
       });
 

@@ -74,8 +74,26 @@ export async function DELETE(request, { params }) {
       );
     }
 
-    await prisma.folder.delete({
-      where: { id }
+    // Use a transaction to delete and reorder
+    await prisma.$transaction(async (tx) => {
+      // Delete the folder
+      await tx.folder.delete({
+        where: { id }
+      });
+
+      // Reorder remaining folders in the same swim lane
+      const remainingFolders = await tx.folder.findMany({
+        where: { swimLaneId: existingFolder.swimLaneId },
+        orderBy: { order: 'asc' }
+      });
+
+      // Update order values to be sequential
+      for (let i = 0; i < remainingFolders.length; i++) {
+        await tx.folder.update({
+          where: { id: remainingFolders[i].id },
+          data: { order: i }
+        });
+      }
     });
 
     return NextResponse.json({ success: true });

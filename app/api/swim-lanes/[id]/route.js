@@ -68,8 +68,26 @@ export async function DELETE(request, { params }) {
       );
     }
 
-    await prisma.swimLane.delete({
-      where: { id }
+    // Use a transaction to delete and reorder
+    await prisma.$transaction(async (tx) => {
+      // Delete the swim lane
+      await tx.swimLane.delete({
+        where: { id }
+      });
+
+      // Reorder remaining swim lanes for this user
+      const remainingSwimLanes = await tx.swimLane.findMany({
+        where: { userId },
+        orderBy: { order: 'asc' }
+      });
+
+      // Update order values to be sequential
+      for (let i = 0; i < remainingSwimLanes.length; i++) {
+        await tx.swimLane.update({
+          where: { id: remainingSwimLanes[i].id },
+          data: { order: i }
+        });
+      }
     });
 
     return NextResponse.json({ success: true });

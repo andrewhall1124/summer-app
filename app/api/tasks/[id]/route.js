@@ -88,8 +88,26 @@ export async function DELETE(request, { params }) {
       );
     }
 
-    await prisma.task.delete({
-      where: { id }
+    // Use a transaction to delete and reorder
+    await prisma.$transaction(async (tx) => {
+      // Delete the task
+      await tx.task.delete({
+        where: { id }
+      });
+
+      // Reorder remaining tasks in the same folder
+      const remainingTasks = await tx.task.findMany({
+        where: { folderId: existingTask.folderId },
+        orderBy: { order: 'asc' }
+      });
+
+      // Update order values to be sequential
+      for (let i = 0; i < remainingTasks.length; i++) {
+        await tx.task.update({
+          where: { id: remainingTasks[i].id },
+          data: { order: i }
+        });
+      }
     });
 
     return NextResponse.json({ success: true });
