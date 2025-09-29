@@ -1,10 +1,38 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { auth } from '@clerk/nextjs/server';
 
 export async function PUT(request, { params }) {
   try {
+    const { userId } = await auth();
+
+    if (!userId) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
     const { id } = await params;
     const data = await request.json();
+
+    // First verify the task belongs to a folder owned by the user
+    const existingTask = await prisma.task.findFirst({
+      where: {
+        id,
+        folder: {
+          swimLane: { userId }
+        }
+      }
+    });
+
+    if (!existingTask) {
+      return NextResponse.json(
+        { error: 'Task not found or access denied' },
+        { status: 404 }
+      );
+    }
+
     const task = await prisma.task.update({
       where: { id },
       data: {
@@ -32,7 +60,33 @@ export async function PUT(request, { params }) {
 
 export async function DELETE(request, { params }) {
   try {
+    const { userId } = await auth();
+
+    if (!userId) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
     const { id } = await params;
+
+    // First verify the task belongs to a folder owned by the user
+    const existingTask = await prisma.task.findFirst({
+      where: {
+        id,
+        folder: {
+          swimLane: { userId }
+        }
+      }
+    });
+
+    if (!existingTask) {
+      return NextResponse.json(
+        { error: 'Task not found or access denied' },
+        { status: 404 }
+      );
+    }
 
     await prisma.task.delete({
       where: { id }
