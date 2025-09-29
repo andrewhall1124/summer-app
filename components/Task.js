@@ -4,12 +4,13 @@ import { useState, useEffect } from 'react';
 import { Calendar, Edit2, Trash2, Tag, Plus } from 'lucide-react';
 import { format } from 'date-fns';
 
-export default function Task({ task, onUpdate, onDelete }) {
+export default function Task({ task, onDelete }) {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [title, setTitle] = useState(task.title);
   const [description, setDescription] = useState(task.description || '');
   const [dueDate, setDueDate] = useState(task.dueDate ? format(new Date(task.dueDate), 'yyyy-MM-dd') : '');
+  const [completed, setCompleted] = useState(task.completed);
   const [availableTags, setAvailableTags] = useState([]);
   const [selectedTagIds, setSelectedTagIds] = useState(task.tags?.map(t => t.tagId) || []);
 
@@ -39,13 +40,13 @@ export default function Task({ task, onUpdate, onDelete }) {
         body: JSON.stringify({
           title: title.trim(),
           description: description.trim() || null,
-          dueDate: dueDate ? new Date(dueDate).toISOString() : null
+          dueDate: dueDate ? new Date(dueDate).toISOString() : null,
+          completed: completed
         }),
       });
 
       if (response.ok) {
         await updateTaskTags();
-        onUpdate();
         setIsEditDialogOpen(false);
       }
     } catch (error) {
@@ -102,18 +103,43 @@ export default function Task({ task, onUpdate, onDelete }) {
     }
   };
 
+  const handleCheck = async (e) => {
+    const newCompleted = e.target.checked;
+    setCompleted(newCompleted);
+
+    try {
+      const response = await fetch(`/api/tasks/${task.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: task.title,
+          description: task.description,
+          dueDate: task.dueDate,
+          completed: newCompleted
+        }),
+      });
+
+      if (!response.ok) {
+        setCompleted(!newCompleted);
+      }
+    } catch (error) {
+      console.error('Failed to update task:', error);
+      setCompleted(!newCompleted);
+    }
+  };
+
   return (
     <>
       <div className="task-item">
         <div className="task-main">
           <input
             type="checkbox"
-            checked={task.completed}
-            onChange={(e) => onUpdate({ completed: e.target.checked })}
+            checked={completed}
+            onChange={handleCheck}
             className="task-checkbox"
           />
           <span
-            className={`task-title ${task.completed ? 'completed' : ''}`}
+            className={`task-title ${completed ? 'completed' : ''}`}
             onClick={() => setIsEditDialogOpen(true)}
           >
             {task.title}

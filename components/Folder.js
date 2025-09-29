@@ -77,22 +77,6 @@ export default function Folder({ folder, onUpdateFolder, onDeleteFolder, onAddTa
     }
   };
 
-  const handleUpdateTask = async (taskId, updates) => {
-    try {
-      const response = await fetch(`/api/tasks/${taskId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updates),
-      });
-
-      if (response.ok) {
-        onRefresh();
-      }
-    } catch (error) {
-      console.error('Failed to update task:', error);
-    }
-  };
-
   return (
     <div className="folder-card">
       <div className="folder-content">
@@ -156,7 +140,6 @@ export default function Folder({ folder, onUpdateFolder, onDeleteFolder, onAddTa
                 <Task
                   key={task.id}
                   task={task}
-                  onUpdate={(updates) => handleUpdateTask(task.id, updates)}
                   onDelete={() => onRefresh()}
                 />
               ))
