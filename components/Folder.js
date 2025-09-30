@@ -1,15 +1,17 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { FolderOpen, ChevronDown, ChevronRight, Plus, Edit2, Trash2, GripVertical } from 'lucide-react';
+import { FolderOpen, Plus, MoreVertical, GripVertical, X } from 'lucide-react';
 import Task from './Task';
 
 export default function Folder({ folder, onUpdateFolder, onDeleteFolder, onAddTask, onRefresh }) {
-  const [isExpanded, setIsExpanded] = useState(false);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [name, setName] = useState(folder.name);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef(null);
 
   const {
     attributes,
@@ -87,96 +89,145 @@ export default function Folder({ folder, onUpdateFolder, onDeleteFolder, onAddTa
 
       if (response.ok) {
         onRefresh();
-        setIsExpanded(true);
       }
     } catch (error) {
       console.error('Failed to create task:', error);
     }
   };
 
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (menuRef.current && !menuRef.current.contains(event.target)) {
+        setMenuOpen(false);
+      }
+    };
+
+    if (menuOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [menuOpen]);
+
   return (
-    <div ref={setNodeRef} style={style} className="folder-card" {...attributes}>
-      <div className="folder-content">
-        <div className="folder-header">
-          <button
-            className="icon-btn drag-handle"
-            {...listeners}
-          >
-            <GripVertical size={16} />
-          </button>
-          <div
-            className="folder-title-section"
-            onClick={() => setIsExpanded(!isExpanded)}
-          >
-            <button className="icon-btn">
-              {isExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+    <>
+      <div ref={setNodeRef} style={style} className="folder-card" {...attributes}>
+        <div className="folder-content">
+          <div className="folder-header">
+            <button
+              className="icon-btn drag-handle"
+              {...listeners}
+            >
+              <GripVertical size={16} />
             </button>
-            <FolderOpen size={16} />
-            {isEditing ? (
-              <input
-                className="form-input folder-name-input"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                onBlur={handleSaveName}
-                onKeyDown={handleKeyPress}
-                autoFocus
-              />
-            ) : (
+            <div
+              className="folder-title-section"
+              onClick={() => setIsDialogOpen(true)}
+            >
+              <FolderOpen size={16} />
               <span className="folder-name">
                 {folder.name}
               </span>
-            )}
-          </div>
-          <div className="folder-actions">
-            <span className={`task-count ${completedTasks === totalTasks && totalTasks > 0 ? 'completed' : ''}`}>
-              {completedTasks}/{totalTasks}
-            </span>
-            <button
-              className="icon-btn"
-              onClick={(e) => {
-                e.stopPropagation();
-                setIsEditing(true);
-              }}
-            >
-              <Edit2 size={12} />
-            </button>
-            <button
-              className="icon-btn delete-btn"
-              onClick={(e) => {
-                e.stopPropagation();
-                handleDeleteFolder();
-              }}
-            >
-              <Trash2 size={12} />
-            </button>
+            </div>
+            <div className="folder-actions">
+              <span className={`task-count ${completedTasks === totalTasks && totalTasks > 0 ? 'completed' : ''}`}>
+                {completedTasks}/{totalTasks}
+              </span>
+              <div className="menu-container" ref={menuRef}>
+                <button
+                  className="icon-btn"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setMenuOpen(!menuOpen);
+                  }}
+                >
+                  <MoreVertical size={16} />
+                </button>
+                {menuOpen && (
+                  <div className="dropdown-menu">
+                    <button
+                      className="dropdown-item"
+                      onClick={() => {
+                        setIsEditing(true);
+                        setMenuOpen(false);
+                      }}
+                    >
+                      Rename
+                    </button>
+                    <button
+                      className="dropdown-item delete-item"
+                      onClick={() => {
+                        handleDeleteFolder();
+                        setMenuOpen(false);
+                      }}
+                    >
+                      Delete
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
         </div>
-
-        {isExpanded && (
-          <div className="folder-tasks">
-            {folder.tasks?.length === 0 ? (
-              <div className="empty-tasks-text">
-                No tasks yet
-              </div>
-            ) : (
-              folder.tasks?.map((task) => (
-                <Task
-                  key={task.id}
-                  task={task}
-                  onDelete={() => onRefresh()}
-                />
-              ))
-            )}
-            <button
-              className="add-btn small"
-              onClick={handleAddTask}
-            >
-              <Plus size={12} />
-              Add Task
-            </button>
-          </div>
-        )}
       </div>
-    </div>
+
+      {isDialogOpen && (
+        <div className="dialog-overlay" onClick={() => setIsDialogOpen(false)}>
+          <div className="dialog-content" onClick={(e) => e.stopPropagation()}>
+            <div className="dialog-header">
+              <div className="dialog-title-section">
+                <FolderOpen size={24} />
+                {isEditing ? (
+                  <input
+                    className="form-input dialog-title-input"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    onBlur={handleSaveName}
+                    onKeyDown={handleKeyPress}
+                    autoFocus
+                  />
+                ) : (
+                  <h2 className="dialog-title">{folder.name}</h2>
+                )}
+              </div>
+              <button
+                className="icon-btn close-btn"
+                onClick={() => setIsDialogOpen(false)}
+              >
+                <X size={24} />
+              </button>
+            </div>
+
+            <div className="dialog-body">
+              {folder.tasks?.length === 0 ? (
+                <div className="empty-tasks-text">
+                  No tasks yet
+                </div>
+              ) : (
+                folder.tasks?.map((task) => (
+                  <Task
+                    key={task.id}
+                    task={task}
+                    onDelete={() => onRefresh()}
+                  />
+                ))
+              )}
+            </div>
+
+            <div className="dialog-footer">
+              <button
+                className="add-btn"
+                onClick={handleAddTask}
+              >
+                <Plus size={16} />
+                Add Task
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 }
