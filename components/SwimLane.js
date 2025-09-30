@@ -1,16 +1,18 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { useDroppable } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { GripVertical, Plus, Edit2, Trash2 } from 'lucide-react';
+import { GripVertical, Plus, MoreVertical } from 'lucide-react';
 import Folder from './Folder';
 
 export default function SwimLane({ swimLane, onUpdateName, onDelete, onAddFolder, onRefresh }) {
   const [isEditing, setIsEditing] = useState(false);
   const [name, setName] = useState(swimLane.name);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef(null);
 
   const {
     attributes,
@@ -47,6 +49,22 @@ export default function SwimLane({ swimLane, onUpdateName, onDelete, onAddFolder
     }
   };
 
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (menuRef.current && !menuRef.current.contains(event.target)) {
+        setMenuOpen(false);
+      }
+    };
+
+    if (menuOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [menuOpen]);
+
   return (
     <div
       ref={setNodeRef}
@@ -79,18 +97,36 @@ export default function SwimLane({ swimLane, onUpdateName, onDelete, onAddFolder
             )}
           </div>
           <div className="swim-lane-actions">
-            <button
-              className="icon-btn"
-              onClick={() => setIsEditing(true)}
-            >
-              <Edit2 size={14} />
-            </button>
-            <button
-              className="icon-btn delete-btn"
-              onClick={() => onDelete(swimLane.id)}
-            >
-              <Trash2 size={14} />
-            </button>
+            <div className="menu-container" ref={menuRef}>
+              <button
+                className="icon-btn"
+                onClick={() => setMenuOpen(!menuOpen)}
+              >
+                <MoreVertical size={16} />
+              </button>
+              {menuOpen && (
+                <div className="dropdown-menu">
+                  <button
+                    className="dropdown-item"
+                    onClick={() => {
+                      setIsEditing(true);
+                      setMenuOpen(false);
+                    }}
+                  >
+                    Rename
+                  </button>
+                  <button
+                    className="dropdown-item delete-item"
+                    onClick={() => {
+                      onDelete(swimLane.id);
+                      setMenuOpen(false);
+                    }}
+                  >
+                    Delete
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
