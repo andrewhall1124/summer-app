@@ -51,26 +51,117 @@ export default function Board() {
   const handleDragEnd = async (event) => {
     const { active, over } = event;
 
-    if (active.id !== over?.id) {
-      const oldIndex = swimLanes.findIndex((lane) => lane.id === active.id);
-      const newIndex = swimLanes.findIndex((lane) => lane.id === over.id);
+    if (!over) return;
 
-      const newSwimLanes = arrayMove(swimLanes, oldIndex, newIndex);
+    // Check if we're dragging a swim lane
+    const isSwimLane = swimLanes.some(lane => lane.id === active.id);
+
+    if (isSwimLane) {
+      // Handle swim lane reordering
+      if (active.id !== over.id) {
+        const oldIndex = swimLanes.findIndex((lane) => lane.id === active.id);
+        const newIndex = swimLanes.findIndex((lane) => lane.id === over.id);
+
+        const newSwimLanes = arrayMove(swimLanes, oldIndex, newIndex);
+        setSwimLanes(newSwimLanes);
+
+        try {
+          await fetch('/api/swim-lanes/reorder', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              swimLanes: newSwimLanes.map((lane, index) => ({
+                id: lane.id,
+                order: index
+              }))
+            }),
+          });
+        } catch (error) {
+          console.error('Failed to reorder swim lanes:', error);
+          fetchSwimLanes();
+        }
+      }
+    } else {
+      // Handle folder drag and drop
+      const activeFolderId = active.id;
+      const overFolderId = over.id;
+
+      // Find the folder and its current swim lane
+      let sourceLane = null;
+      let sourceFolder = null;
+
+      for (const lane of swimLanes) {
+        const folder = lane.folders?.find(f => f.id === activeFolderId);
+        if (folder) {
+          sourceLane = lane;
+          sourceFolder = folder;
+          break;
+        }
+      }
+
+      if (!sourceFolder) return;
+
+      // Determine target swim lane
+      let targetLaneId = null;
+      let targetIndex = 0;
+
+      // Check if dropping over another folder
+      for (const lane of swimLanes) {
+        const folderIndex = lane.folders?.findIndex(f => f.id === overFolderId);
+        if (folderIndex !== undefined && folderIndex !== -1) {
+          targetLaneId = lane.id;
+          targetIndex = folderIndex;
+          break;
+        }
+      }
+
+      // Check if dropping over a droppable zone (swim lane)
+      if (!targetLaneId && over.id.toString().startsWith('droppable-')) {
+        targetLaneId = over.id.toString().replace('droppable-', '');
+        const targetLane = swimLanes.find(l => l.id === targetLaneId);
+        targetIndex = targetLane?.folders?.length || 0;
+      }
+
+      if (!targetLaneId) return;
+
+      // Update local state optimistically
+      const newSwimLanes = swimLanes.map(lane => ({
+        ...lane,
+        folders: lane.folders ? [...lane.folders] : []
+      }));
+
+      const sourceLaneIndex = newSwimLanes.findIndex(l => l.id === sourceLane.id);
+      const targetLaneIndex = newSwimLanes.findIndex(l => l.id === targetLaneId);
+
+      // Remove from source
+      const sourceFolderIndex = newSwimLanes[sourceLaneIndex].folders.findIndex(f => f.id === activeFolderId);
+      const [movedFolder] = newSwimLanes[sourceLaneIndex].folders.splice(sourceFolderIndex, 1);
+
+      // Add to target
+      if (sourceLane.id === targetLaneId) {
+        // Same lane - just reorder
+        newSwimLanes[targetLaneIndex].folders.splice(targetIndex, 0, movedFolder);
+      } else {
+        // Different lane - move between lanes
+        movedFolder.swimLaneId = targetLaneId;
+        newSwimLanes[targetLaneIndex].folders.splice(targetIndex, 0, movedFolder);
+      }
+
       setSwimLanes(newSwimLanes);
 
+      // Persist to backend
       try {
-        await fetch('/api/swim-lanes/reorder', {
+        await fetch('/api/folders/reorder', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            swimLanes: newSwimLanes.map((lane, index) => ({
-              id: lane.id,
-              order: index
-            }))
+            folderId: activeFolderId,
+            targetSwimLaneId: targetLaneId,
+            targetIndex: targetIndex
           }),
         });
       } catch (error) {
-        console.error('Failed to reorder swim lanes:', error);
+        console.error('Failed to reorder folders:', error);
         fetchSwimLanes();
       }
     }

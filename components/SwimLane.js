@@ -2,6 +2,8 @@
 
 import { useState } from 'react';
 import { useSortable } from '@dnd-kit/sortable';
+import { useDroppable } from '@dnd-kit/core';
+import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { GripVertical, Plus, Edit2, Trash2 } from 'lucide-react';
 import Folder from './Folder';
@@ -18,6 +20,10 @@ export default function SwimLane({ swimLane, onUpdateName, onDelete, onAddFolder
     transition,
     isDragging,
   } = useSortable({ id: swimLane.id });
+
+  const { setNodeRef: setDroppableNodeRef } = useDroppable({
+    id: `droppable-${swimLane.id}`,
+  });
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -88,17 +94,22 @@ export default function SwimLane({ swimLane, onUpdateName, onDelete, onAddFolder
           </div>
         </div>
 
-        <div className="folder-list">
-          {swimLane.folders?.map((folder) => (
-            <Folder
-              key={folder.id}
-              folder={folder}
-              onUpdateFolder={() => onRefresh()}
-              onDeleteFolder={() => onRefresh()}
-              onAddTask={() => onRefresh()}
-              onRefresh={onRefresh}
-            />
-          ))}
+        <div className="folder-list" ref={setDroppableNodeRef}>
+          <SortableContext
+            items={swimLane.folders?.map(f => f.id) || []}
+            strategy={verticalListSortingStrategy}
+          >
+            {swimLane.folders?.map((folder) => (
+              <Folder
+                key={folder.id}
+                folder={folder}
+                onUpdateFolder={() => onRefresh()}
+                onDeleteFolder={() => onRefresh()}
+                onAddTask={() => onRefresh()}
+                onRefresh={onRefresh}
+              />
+            ))}
+          </SortableContext>
         </div>
 
         <button

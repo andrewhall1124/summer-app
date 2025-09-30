@@ -1,13 +1,30 @@
 'use client';
 
 import { useState } from 'react';
-import { FolderOpen, ChevronDown, ChevronRight, Plus, Edit2, Trash2 } from 'lucide-react';
+import { useSortable } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+import { FolderOpen, ChevronDown, ChevronRight, Plus, Edit2, Trash2, GripVertical } from 'lucide-react';
 import Task from './Task';
 
 export default function Folder({ folder, onUpdateFolder, onDeleteFolder, onAddTask, onRefresh }) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [name, setName] = useState(folder.name);
+
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: folder.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
 
   const completedTasks = folder.tasks?.filter(task => task.completed).length || 0;
   const totalTasks = folder.tasks?.length || 0;
@@ -78,9 +95,15 @@ export default function Folder({ folder, onUpdateFolder, onDeleteFolder, onAddTa
   };
 
   return (
-    <div className="folder-card">
+    <div ref={setNodeRef} style={style} className="folder-card" {...attributes}>
       <div className="folder-content">
         <div className="folder-header">
+          <button
+            className="icon-btn drag-handle"
+            {...listeners}
+          >
+            <GripVertical size={16} />
+          </button>
           <div
             className="folder-title-section"
             onClick={() => setIsExpanded(!isExpanded)}
