@@ -59,94 +59,91 @@ export async function POST(request) {
 
         const oldIndex = folders.findIndex(f => f.id === folderId);
 
-        // Remove from old position
-        folders.splice(oldIndex, 1);
-
-        // Insert at new position
-        folders.splice(targetIndex, 0, folder);
-
-        // First set all to negative temporary values to avoid constraint conflicts
-        for (let i = 0; i < folders.length; i++) {
-          await tx.folder.update({
-            where: { id: folders[i].id },
-            data: { order: -1 - i }
-          });
+        // Only update if the position actually changed
+        if (oldIndex === targetIndex) {
+          return;
         }
 
-        // Then update to correct positive values
-        for (let i = 0; i < folders.length; i++) {
-          await tx.folder.update({
-            where: { id: folders[i].id },
-            data: { order: i }
-          });
+        // Use temporary negative values to avoid constraint conflicts
+        // Step 1: Set moved folder to temporary value
+        await tx.folder.update({
+          where: { id: folderId },
+          data: { order: -1 }
+        });
+
+        // Step 2: Update affected folders sequentially
+        if (oldIndex < targetIndex) {
+          // Moving down: shift items between oldIndex and targetIndex up
+          for (let i = oldIndex + 1; i <= targetIndex; i++) {
+            await tx.folder.update({
+              where: { id: folders[i].id },
+              data: { order: i - 1 }
+            });
+          }
+        } else {
+          // Moving up: shift items between targetIndex and oldIndex down
+          for (let i = targetIndex; i < oldIndex; i++) {
+            await tx.folder.update({
+              where: { id: folders[i].id },
+              data: { order: i + 1 }
+            });
+          }
         }
+
+        // Step 3: Set moved folder to final position
+        await tx.folder.update({
+          where: { id: folderId },
+          data: { order: targetIndex }
+        });
       } else {
         // Moving to a different lane
 
-        // Step 1: Set the moved folder to a temporary negative order
+        // Step 1: Move folder to temp position in source lane
         await tx.folder.update({
           where: { id: folderId },
-          data: { order: -9999 }
+          data: { order: -1 }
         });
 
-        // Step 2: Get all folders in source lane (excluding the moved folder)
+        // Step 2: Update source lane - decrement order for all folders after the moved one
         const sourceFolders = await tx.folder.findMany({
           where: {
             swimLaneId: sourceSwimLaneId,
-            id: { not: folderId }
+            order: { gt: folder.order }
           },
           orderBy: { order: 'asc' }
         });
 
-        // Reorder source lane with temp negative values first
-        for (let i = 0; i < sourceFolders.length; i++) {
+        for (const f of sourceFolders) {
           await tx.folder.update({
-            where: { id: sourceFolders[i].id },
-            data: { order: -1000 - i }
+            where: { id: f.id },
+            data: { order: f.order - 1 }
           });
         }
 
-        // Then set correct values
-        for (let i = 0; i < sourceFolders.length; i++) {
-          await tx.folder.update({
-            where: { id: sourceFolders[i].id },
-            data: { order: i }
-          });
-        }
-
-        // Step 3: Get all folders in target lane
+        // Step 3: Update target lane - increment order for folders at or after target position
         const targetFolders = await tx.folder.findMany({
-          where: { swimLaneId: targetSwimLaneId },
-          orderBy: { order: 'asc' }
+          where: {
+            swimLaneId: targetSwimLaneId,
+            order: { gte: targetIndex }
+          },
+          orderBy: { order: 'desc' } // Process in reverse to avoid conflicts
         });
 
-        // Set target lane folders to temp negative values
-        for (let i = 0; i < targetFolders.length; i++) {
+        for (const f of targetFolders) {
           await tx.folder.update({
-            where: { id: targetFolders[i].id },
-            data: { order: -2000 - i }
+            where: { id: f.id },
+            data: { order: f.order + 1 }
           });
         }
 
-        // Step 4: Move the folder to the target swim lane
+        // Step 4: Move the folder to target lane with final position
         await tx.folder.update({
           where: { id: folderId },
           data: {
             swimLaneId: targetSwimLaneId,
-            order: -3000
+            order: targetIndex
           }
         });
-
-        // Step 5: Rebuild the target lane order with the moved folder
-        targetFolders.splice(targetIndex, 0, { id: folderId });
-
-        // Set all to correct final values
-        for (let i = 0; i < targetFolders.length; i++) {
-          await tx.folder.update({
-            where: { id: targetFolders[i].id },
-            data: { order: i }
-          });
-        }
       }
     });
 

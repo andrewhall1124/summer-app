@@ -8,6 +8,9 @@ import {
   PointerSensor,
   useSensor,
   useSensors,
+  DragOverlay,
+  pointerWithin,
+  rectIntersection,
 } from '@dnd-kit/core';
 import {
   arrayMove,
@@ -15,16 +18,22 @@ import {
   sortableKeyboardCoordinates,
   horizontalListSortingStrategy,
 } from '@dnd-kit/sortable';
-import { Plus } from 'lucide-react';
+import { Plus, GripVertical, FolderOpen } from 'lucide-react';
 import { SignedIn, SignedOut, SignInButton, UserButton } from '@clerk/nextjs';
 import SwimLane from './SwimLane';
 
 export default function Board() {
   const [swimLanes, setSwimLanes] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [activeId, setActiveId] = useState(null);
+  const [activeType, setActiveType] = useState(null);
 
   const sensors = useSensors(
-    useSensor(PointerSensor),
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    }),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
     })
@@ -48,8 +57,25 @@ export default function Board() {
     }
   };
 
+  const handleDragStart = (event) => {
+    const { active } = event;
+    setActiveId(active.id);
+
+    // Determine if we're dragging a swim lane or folder
+    const isSwimLane = swimLanes.some(lane => lane.id === active.id);
+    setActiveType(isSwimLane ? 'swimLane' : 'folder');
+  };
+
+  const handleDragCancel = () => {
+    setActiveId(null);
+    setActiveType(null);
+  };
+
   const handleDragEnd = async (event) => {
     const { active, over } = event;
+
+    setActiveId(null);
+    setActiveType(null);
 
     if (!over) return;
 
@@ -82,82 +108,86 @@ export default function Board() {
         }
       }
     } else {
-      // Handle folder drag and drop
-      const activeFolderId = active.id;
-      const overFolderId = over.id;
-
-      // Find the folder and its current swim lane
+      // Handle folder reordering
+      // Find source folder and swim lane
       let sourceLane = null;
-      let sourceFolder = null;
+      let sourceFolderIndex = -1;
 
       for (const lane of swimLanes) {
-        const folder = lane.folders?.find(f => f.id === activeFolderId);
-        if (folder) {
-          sourceLane = lane;
-          sourceFolder = folder;
-          break;
-        }
-      }
-
-      if (!sourceFolder) return;
-
-      // Determine target swim lane
-      let targetLaneId = null;
-      let targetIndex = 0;
-
-      // Check if dropping over another folder
-      for (const lane of swimLanes) {
-        const folderIndex = lane.folders?.findIndex(f => f.id === overFolderId);
+        const folderIndex = lane.folders?.findIndex(f => f.id === active.id);
         if (folderIndex !== undefined && folderIndex !== -1) {
-          targetLaneId = lane.id;
-          targetIndex = folderIndex;
+          sourceLane = lane;
+          sourceFolderIndex = folderIndex;
           break;
         }
       }
 
-      // Check if dropping over a droppable zone (swim lane)
-      if (!targetLaneId && over.id.toString().startsWith('droppable-')) {
-        targetLaneId = over.id.toString().replace('droppable-', '');
-        const targetLane = swimLanes.find(l => l.id === targetLaneId);
-        targetIndex = targetLane?.folders?.length || 0;
+      if (!sourceLane) return;
+
+      let targetLane = null;
+      let targetFolderIndex = -1;
+
+      // Check if dropped on a folder or empty drop zone
+      if (over.id.toString().startsWith('drop-')) {
+        // Dropped on empty space in a swim lane
+        const targetLaneId = over.id.toString().replace('drop-', '');
+        targetLane = swimLanes.find(l => l.id === targetLaneId);
+        targetFolderIndex = targetLane?.folders?.length || 0; // Add to end
+      } else {
+        // Dropped on another folder
+        for (const lane of swimLanes) {
+          const folderIndex = lane.folders?.findIndex(f => f.id === over.id);
+          if (folderIndex !== undefined && folderIndex !== -1) {
+            targetLane = lane;
+            targetFolderIndex = folderIndex;
+            break;
+          }
+        }
       }
 
-      if (!targetLaneId) return;
+      if (!targetLane || active.id === over.id) return;
 
-      // Update local state optimistically
+      // Update state optimistically
       const newSwimLanes = swimLanes.map(lane => ({
         ...lane,
         folders: lane.folders ? [...lane.folders] : []
       }));
 
       const sourceLaneIndex = newSwimLanes.findIndex(l => l.id === sourceLane.id);
-      const targetLaneIndex = newSwimLanes.findIndex(l => l.id === targetLaneId);
+      const targetLaneIndex = newSwimLanes.findIndex(l => l.id === targetLane.id);
+
+      if (sourceLaneIndex === -1 || targetLaneIndex === -1) return;
 
       // Remove from source
-      const sourceFolderIndex = newSwimLanes[sourceLaneIndex].folders.findIndex(f => f.id === activeFolderId);
       const [movedFolder] = newSwimLanes[sourceLaneIndex].folders.splice(sourceFolderIndex, 1);
 
-      // Add to target
-      if (sourceLane.id === targetLaneId) {
-        // Same lane - just reorder
-        newSwimLanes[targetLaneIndex].folders.splice(targetIndex, 0, movedFolder);
+      // Add to target at correct position
+      if (sourceLane.id === targetLane.id) {
+        // Same lane: arrayMove handles the index adjustment automatically
+        newSwimLanes[sourceLaneIndex].folders = arrayMove(
+          [...swimLanes[sourceLaneIndex].folders],
+          sourceFolderIndex,
+          targetFolderIndex
+        );
       } else {
-        // Different lane - move between lanes
-        movedFolder.swimLaneId = targetLaneId;
-        newSwimLanes[targetLaneIndex].folders.splice(targetIndex, 0, movedFolder);
+        // Different lane: insert at target position
+        movedFolder.swimLaneId = targetLane.id;
+        newSwimLanes[targetLaneIndex].folders.splice(targetFolderIndex, 0, movedFolder);
       }
 
       setSwimLanes(newSwimLanes);
 
-      // Persist to backend
+      // Calculate backend index (position in array)
+      const finalTargetIndex = newSwimLanes[targetLaneIndex].folders.findIndex(f => f.id === active.id);
+
       try {
         await fetch('/api/folders/reorder', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            folderId: activeFolderId,
-            targetSwimLaneId: targetLaneId,
-            targetIndex: targetIndex
+            folderId: active.id,
+            targetSwimLaneId: targetLane.id,
+            targetIndex: finalTargetIndex
           }),
         });
       } catch (error) {
@@ -273,8 +303,10 @@ export default function Board() {
 
         <DndContext
           sensors={sensors}
-          collisionDetection={closestCenter}
+          collisionDetection={pointerWithin}
+          onDragStart={handleDragStart}
           onDragEnd={handleDragEnd}
+          onDragCancel={handleDragCancel}
         >
           <SortableContext items={swimLanes.map(lane => lane.id)} strategy={horizontalListSortingStrategy}>
             <div className="swim-lane-container">
@@ -290,6 +322,49 @@ export default function Board() {
               ))}
             </div>
           </SortableContext>
+          <DragOverlay>
+            {activeId ? (
+              activeType === 'swimLane' ? (
+                <div className="swim-lane dragging">
+                  <div className="swim-lane-content">
+                    <div className="swim-lane-header">
+                      <div className="swim-lane-title-section">
+                        <button className="icon-btn drag-handle">
+                          <GripVertical size={16} />
+                        </button>
+                        <h2 className="swim-lane-title">
+                          {swimLanes.find(l => l.id === activeId)?.name}
+                        </h2>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                (() => {
+                  let activeFolder = null;
+                  for (const lane of swimLanes) {
+                    activeFolder = lane.folders?.find(f => f.id === activeId);
+                    if (activeFolder) break;
+                  }
+                  return activeFolder ? (
+                    <div className="folder-card dragging">
+                      <div className="folder-content">
+                        <div className="folder-header">
+                          <button className="icon-btn drag-handle">
+                            <GripVertical size={16} />
+                          </button>
+                          <div className="folder-title-section">
+                            <FolderOpen size={16} />
+                            <span className="folder-name">{activeFolder.name}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ) : null;
+                })()
+              )
+            ) : null}
+          </DragOverlay>
         </DndContext>
 
         {swimLanes.length === 0 && (

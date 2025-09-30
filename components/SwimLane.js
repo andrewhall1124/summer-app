@@ -21,8 +21,8 @@ export default function SwimLane({ swimLane, onUpdateName, onDelete, onAddFolder
     isDragging,
   } = useSortable({ id: swimLane.id });
 
-  const { setNodeRef: setDroppableNodeRef } = useDroppable({
-    id: `droppable-${swimLane.id}`,
+  const { setNodeRef: setDroppableRef } = useDroppable({
+    id: `drop-${swimLane.id}`,
   });
 
   const style = {
@@ -94,7 +94,7 @@ export default function SwimLane({ swimLane, onUpdateName, onDelete, onAddFolder
           </div>
         </div>
 
-        <div className="folder-list" ref={setDroppableNodeRef}>
+        <div className="folder-list" ref={setDroppableRef}>
           <SortableContext
             items={swimLane.folders?.map(f => f.id) || []}
             strategy={verticalListSortingStrategy}

@@ -18,6 +18,7 @@
   --red-50: #fef2f2;
   --red-500: #ef4444;
   --red-600: #dc2626;
+  --blue-50: #eff6ff;
   --blue-100: #dbeafe;
   --blue-700: #1d4ed8;
   --green-100: #dcfce7;
@@ -153,6 +154,18 @@ a {
   height: 100%;
   display: flex;
   flex-direction: column;
+  transition: border-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+}
+
+.swim-lane.dragging {
+  box-shadow: var(--shadow-lg);
+  cursor: grabbing;
+}
+
+.swim-lane.drag-over {
+  border-color: var(--blue-500);
+  border-width: 2px;
+  background: var(--blue-50);
 }
 
 .swim-lane-content {
@@ -211,6 +224,14 @@ a {
   gap: 0.5rem;
   flex: 1;
   min-height: 100px;
+  transition: background-color 0.2s ease-in-out;
+  border-radius: var(--border-radius-sm);
+  padding: 0.25rem;
+  margin: -0.25rem;
+}
+
+.folder-list.drag-over {
+  background-color: rgba(59, 130, 246, 0.1);
 }
 
 /* Folder Card */
@@ -220,6 +241,12 @@ a {
   border-radius: var(--border-radius-sm);
   box-shadow: var(--shadow-sm);
   width: 100%;
+  transition: box-shadow 0.2s ease-in-out;
+}
+
+.folder-card.dragging {
+  box-shadow: var(--shadow-lg);
+  cursor: grabbing;
 }
 
 .folder-content {
